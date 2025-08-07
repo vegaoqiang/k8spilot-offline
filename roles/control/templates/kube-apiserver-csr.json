@@ -1,0 +1,27 @@
+{
+  "CN": "kube-apiserver",
+  "hosts": [
+    {% for host in groups['control'] %}
+    "{{ hostvars[host].ansible_facts.default_ipv4.address }}",
+    "{{ hostvars[host]['ansible_ssh_host'] }}",
+    {% endfor %}
+    "{{ kube_cluster_apiserver }}",
+    "127.0.0.1",
+    "kubernetes",
+    "kubernetes.default",
+    "kubernetes.default.svc",
+    "kubernetes.default.svc.cluster",
+    "kubernetes.default.svc.cluster.local"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "L": "K8SPILOT",
+      "O": "system:masters"
+    }
+  ]
+}

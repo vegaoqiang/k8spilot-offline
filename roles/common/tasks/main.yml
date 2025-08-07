@@ -1,0 +1,175 @@
+---
+
+
+- name: Check System Kernel Version
+  ansible.builtin.shell: |
+    kernel_major=$(uname -r|awk -F'.' '{print $1}')
+    kernel_minor=$(uname -r|awk -F'.' '{print $2}')
+    if [ "${kernel_major}" -lt 5 ]; then 
+      exit 1
+    fi
+    if [ "${kernel_major}" -eq 5 ] && [ "${kernel_minor}" -lt 4 ]; then
+      exit 1
+    fi
+  register: kernel_check
+
+- name: Fail If Kernel < 5.4
+  ansible.builtin.meta: end_play
+  when: kernel_check.rc != 0
+
+- name: Check System GLIBC Version
+  ansible.builtin.shell: |
+    if  glibc_info=$(ldd --version 2>&1); then
+      echo "${glibc_info}"|head -n 1|awk '{print $NF}'
+    else
+      echo 0
+    fi
+  register: glibc_version_raw
+
+- name: Fail If GLIBC Version < 2.17
+  ansible.builtin.meta: end_play
+  when: glibc_version_raw.stdout is version('2.17', '<')
+
+    
+- name: Disable SELINUX
+  ansible.builtin.shell: |
+    if [ -f /etc/selinux/config ]; then 
+      sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+      force=$(getenforce)
+      if [ "${force}" = "Enforcing" ] || [ "${force}" = "enforcing" ]; then
+        setenforce 0
+      fi
+    fi
+
+# - name: Install {{ dnf_package | join(',') }} In Remote Host
+#   ansible.builtin.package:
+#     name: "{{ item }}"
+#     state: present
+#   loop: "{{ dnf_package }}"
+#   when: ansible_distribution in dnf_system
+
+- name: Install {{ apt_package | join(',') }} In Remote Host
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ apt_package }}"
+  when: ansible_architecture in apt_system
+
+# - name: Install Python Module
+#   ansible.builtin.shell: |
+#     python3 -m ensurepip
+#     pip3 install pyyaml -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+#   when: ansible_distribution == 'Alibaba'
+
+- name: Update Timezone
+  shell: timedatectl set-timezone Asia/Shanghai
+
+- name: Update Hostname
+  hostname: name={{ inventory_hostname }}
+
+
+- name: Update System Limit Config
+  blockinfile:
+    dest: /etc/security/limits.conf
+    insertafter: "# End of file"
+    content: |
+      *     soft    nofile  800000
+      *     hard    nofile  800000
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Disable Services
+  service: name={{ item }} enabled=no state=stopped
+  with_items: "{{ disable_service }}"
+  ignore_errors: yes
+  when: 
+    - ansible_facts.services[service_name] is defined
+  vars:
+    service_name: "{{ item }}.service"
+
+
+- name: Kernel Tuning
+  sysctl: name={{ item.name }} value={{ item.value }} sysctl_set=yes state=present
+  with_items: '{{ kernel_params }}'
+  ignore_errors: yes
+
+
+- name: Update chrony.conf
+  template:
+    src: chrony.conf 
+    dest: /etc/chrony.conf
+
+- name: Restart Chronyd Service
+  shell: systemctl restart chronyd
+
+- name: Disable SWAP
+  shell: |
+    swapoff -a
+    sed -i "/#.*swap/! s/.*swap.*/#&/" /etc/fstab
+    sysctl --system
+
+
+- name: Create Temp Directory In localhost
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/.ansible_temp"
+    state: directory
+    mode: '0755'
+  run_once: true
+  delegate_to: localhost
+  
+- name: Copy Cfssl Tool To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/{{ item }}_{{ cfssl_version }}_linux_{{ arch_alias }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: '0755'
+  loop:
+    - cfssl
+    - cfssljson
+
+
+- name: Create CA CSR File
+  ansible.builtin.copy:
+    src: root-csr.json
+    dest: /tmp/ca/
+  when: inventory_hostname in groups['control']
+
+- name: Generate Root CA
+  ansible.builtin.shell: |
+    cfssl gencert -initca root-csr.json |cfssljson -bare ca
+  args:
+    chdir: /tmp/ca
+  when: inventory_hostname in groups['control']
+
+- name: Fetch CA File
+  ansible.builtin.fetch:
+    src: "/tmp/ca/{{ item }}"
+    dest: "{{ playbook_dir }}/ca/{{ item }}"
+    flat: true
+  loop:
+    - ca.pem
+    - ca-key.pem
+  when: inventory_hostname in groups['control']
+
+- name: Create Kubernetes Dirctory
+  file:
+    path: "{{ kubernetes_home }}/{{item}}"
+    state: directory
+    mode: 0755
+    recurse: yes
+    owner: root
+    group: root
+  with_items:
+  - 'bin'
+  - 'etc'
+  - 'ssl'
+  - 'logs'
+
+- name: Create .kube Dirctory
+  file:
+    path: "/root/.kube"
+    state: directory
+    mode: 0755
+    recurse: yes
+    owner: root
+    group: root

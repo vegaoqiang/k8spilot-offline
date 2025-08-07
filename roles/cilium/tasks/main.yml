@@ -1,0 +1,30 @@
+
+- name: Copy Cilium Helm Chart To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/cilium-{{ cilium_version| replace('v', '') }}.tgz"
+    dest: "/tmp/cilium-{{ cilium_version| replace('v', '') }}.tgz"
+
+- name: Copy Cilium Values Override File
+  ansible.builtin.template:
+    src: "value.override.yaml.j2"
+    dest: "/tmp/cilium-values-override.yaml"
+    mode: '0644'
+
+- name: Copy Cilium Offline Images To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/images/cilium"
+    dest: "/tmp/"
+    mode: '0644'
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['worker'] }}"
+
+- name: Load Cilium Images
+  ansible.builtin.shell: |
+    ls /tmp/cilium/*.tar|xargs -n 1 ctr -n k8s.io i import
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['worker'] }}"
+
+- name: Install Cilium
+  ansible.builtin.shell: |
+    helm upgrade --install cilium /tmp/cilium-{{ cilium_version| replace('v', '') }}.tgz --namespace kube-system --values /tmp/cilium-values-override.yaml
+

@@ -1,0 +1,17 @@
+*.tar.gz
+*.tgz
+*.tar
+.venv
+.vscode
+*.whl
+hosts
+minio.yaml
+local.ini
+ca
+ca-key.pem
+ca.pem
+config-encode
+.cache
+.ansible_facts_cache
+.ansible_temp
+artifacts

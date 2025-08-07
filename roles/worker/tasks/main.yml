@@ -1,0 +1,149 @@
+---
+
+- name: Copy Kubernetes Worker Components To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/{{ item }}"
+    dest: "{{ kubernetes_home }}/bin/{{ item }}"
+    mode: '0755'
+  loop:
+    - kubelet
+
+- name: Install Kernel Module Conf 
+  copy:
+    src: "cri.conf"
+    dest: "/etc/modules-load.d/cri.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Load Overlay and  Br_netfilter Module
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items:
+  - overlay
+  - br_netfilter
+  - ip_tables
+
+- name: CRI Kernel Tuning
+  ansible.posix.sysctl: 
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+    state: present
+  with_items: "{{ cri_kernel_params }}"
+
+
+- name: Create Containerd And CNI Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+  loop:
+  - /etc/containerd
+  - /opt/cni/bin
+  - /etc/cni/net.d
+
+- name: Copy CNI plugins Binary To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/cni-plugins-linux-{{ arch_alias }}-{{ cni_version }}.tgz"
+    dest: "/tmp/cni-plugins-linux-{{ arch_alias }}-{{ cni_version }}.tgz"
+
+- name: Install CNI plugins Binary In Remote Host
+  uncompress:
+    src: "/tmp/cni-plugins-linux-{{ arch_alias }}-{{ cni_version }}.tgz"
+    dest: "/opt/cni/bin/"
+    mode: '0755'
+    strip_components: 1
+
+- name: Copy runc Binary To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/runc"
+    dest: "/usr/local/sbin/runc"
+    mode: '0755'
+
+- name: Copy Containerd Binary To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/containerd-{{ containerd_version }}-linux-{{ arch_alias }}.tar.gz"
+    dest: "/tmp/containerd-{{ containerd_version }}-linux-{{ arch_alias }}.tar.gz"
+
+- name: Install Containerd Binary In Remote Host
+  uncompress:
+    src: "/tmp/containerd-{{ containerd_version }}-linux-{{ arch_alias }}.tar.gz"
+    dest: "/usr/local/"
+    mode: '0755'
+
+# - name: Install Containerd With Plugins
+#   ansible.builtin.shell: |
+#     tar -xf /tmp/containerd-{{ containerd_version }}-linux-{{ arch_alias }}.tar.gz -C /usr/local/
+#     if [ ! -d "/opt/cni/bin" ]; then
+#       mkdir -p /opt/cni/bin
+#     fi
+#     if [ ! -d /etc/cni/net.d ]; then
+#       mkdir -p /etc/cni/net.d
+#     fi
+#     if [ ! -d /etc/containerd ]; then
+#       mkdir -p /etc/containerd
+#     fi
+#     tar --strip-components=1 -xf /tmp/cni-plugins-linux-{{ arch_alias }}-{{ cni_version }}.tgz -C /opt/cni/bin/
+#     chmod +x /usr/local/sbin/runc
+  
+- name: Install Worker Certificate And Service File
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+  - { src: "{{ playbook_dir }}/ca/{{ root_cert }}", dest: "{{ kubernetes_home }}/ssl/ca.pem" }
+  - { src: "{{ playbook_dir }}/ca/{{ root_key }}", dest: "{{ kubernetes_home }}/ssl/key.pem" }
+  - { src: "containerd.service", dest: "/usr/lib/systemd/system/containerd.service" }
+  - { src: "crictl.yaml", dest: "/etc/crictl.yaml" }
+  - { src: "10-containerd-net.conflist", dest: "/etc/cni/net.d/"}
+
+
+- name: Install Kube-Worker Systemd Config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+  - { src: "kubelet.conf", dest: "{{ kubernetes_home }}/etc/kubelet.conf" }
+  - { src: "kubelet.yaml", dest: "{{ kubernetes_home }}/etc/kubelet.yaml" }
+  - { src: "kubelet.service.j2", dest: "/usr/lib/systemd/system/kubelet.service" }
+  - { src: "config.toml", dest: "/etc/containerd/config.toml" }
+
+
+- name: Install Worker Kubeconfig
+  template:
+    src: "node.kubeconfig"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+  - { dest: "{{ kubernetes_home }}/etc/kubelet-bootstrap.kubeconfig", context_user: "kubelet-bootstrap" }
+
+
+- name: Enable Kubernetes Worker Service
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+  - 'containerd'
+  - 'kubelet'
+
+- name: Copy PAUSE Image To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/pause-{{ pause_version }}-{{ arch_alias }}.tar"
+    dest: "/tmp/pause-{{ pause_version }}-{{ arch_alias }}.tar"
+
+- name: Load PAUSE Image
+  ansible.builtin.shell: |
+    ctr -n k8s.io images import /tmp/pause-{{ pause_version }}-{{ arch_alias }}.tar
+    rm -f /tmp/pause-{{ pause_version }}-{{ arch_alias }}.tar

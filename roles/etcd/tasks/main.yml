@@ -1,0 +1,79 @@
+---
+
+- name: Add Etcd User
+  user:
+    name: "{{ etcd_user }}"
+    home: "{{ etcd_home }}"
+    shell: /sbin/nologin
+    system: yes
+
+- name: Create Etcd Dirctory
+  file: 
+    path: "{{ etcd_home }}/{{item}}"
+    state: directory
+    mode: 0755 
+    recurse: yes
+    owner: "{{ etcd_user }}"
+    group: "{{ etcd_user }}"
+  with_items:
+  - 'bin'
+  - 'data'
+  - 'etc'
+  - 'ssl'
+
+- name: Make Etcd Config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ etcd_user }}"
+    group: "{{ etcd_user }}"
+    mode: 0644
+  with_items:
+  - { src: "etcd.service.j2", dest: "/usr/lib/systemd/system/etcd.service" }
+  - { src: "etcd.conf.yaml", dest: "{{ etcd_home }}/etc/etcd.conf.yaml" }
+  - { src: "etcd-csr.json", dest: "{{ etcd_home }}/ssl/etcd-csr.json" }
+  tags: conf
+
+
+- name: Copy SSL And Config
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ etcd_user }}"
+    group: "{{ etcd_user }}"
+    mode: 0644
+  with_items:
+  - { src: "{{ playbook_dir }}/ca/{{ root_cert }}", dest: "{{ etcd_home }}/ssl/ca.pem" }
+  - { src: "{{ playbook_dir }}/ca/{{ root_key }}", dest: "{{ etcd_home }}/ssl/key.pem" }
+  - { src: "ca-config.json", dest: "{{ etcd_home }}/ssl/ca-config.json" }
+
+- name: Copy Etcd Binary To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/etcd-{{ etcd_version }}-linux-{{ arch_alias }}.tar.gz"
+    dest: "/tmp/etcd-{{ etcd_version }}-linux-{{ arch_alias }}.tar.gz"
+
+
+- name:  Install Etcd Binary On Remote Host
+  uncompress:
+    src: "/tmp/etcd-{{ etcd_version }}-linux-{{ arch_alias }}.tar.gz"
+    dest: "{{ etcd_home }}/bin"
+    strip_components: 1
+    owner: "{{ etcd_user }}"
+    group: "{{ etcd_user }}"
+    mode: "0755"
+    include:
+      - etcd
+      - etcdctl
+
+
+- name: Create Etcd Cluster Certificates
+  ansible.builtin.shell: |
+    cfssl gencert -ca=ca.pem -ca-key=key.pem -config=ca-config.json etcd-csr.json  | cfssljson -bare etcd
+    chown -R {{ etcd_user }}.{{ etcd_user }}  {{ etcd_home }}/ssl
+  args:
+    chdir: "{{ etcd_home }}/ssl"
+  notify:
+  - Start And Enable Etcd Service
+  - Wait Etcd Service Started
+  - Check Etcd Cluster Healthly
+  - Print Etcd Cluster Status

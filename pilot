@@ -1,0 +1,85 @@
+#!/bin/bash
+
+
+check_requirements(){
+  PY_INTERPRETER=""
+  if which python3 >/dev/null 2>&1; then
+    PY_INTERPRETER=$(which python3)
+  elif which python >/dev/null 2>&1; then
+    PY_INTERPRETER=$(which python)
+  else
+    echo "Can not found avaliable python interpreter in system"
+    echo "You may install python >= 3.10 by manual."
+    exit 1
+  fi
+  ${PY_INTERPRETER} $(dirname ${BASH_SOURCE[0]})/scripts/py_checker.py
+  if [ "$?" -ne 0 ]; then
+    exit 1
+  fi
+}
+
+check_inventory(){
+  ${PY_INTERPRETER} $(dirname ${BASH_SOURCE[0]})/scripts/inventory_checker.py validation
+  if [ "$?" -ne 0 ]; then
+    echo "开始初始化inventory"
+    ${PY_INTERPRETER} $(dirname ${BASH_SOURCE[0]})/scripts/inventory_checker.py generate
+    if [ "$?" -ne 0 ]; then
+      exit 1
+    fi 
+    printf "\e[32minventory初始化完成\e[0m\n"
+  fi
+}
+
+select_kube_version(){
+  printf "\e[32m正在获取kubernetes版本信息\e[0m\n"
+  local version_list=$(curl -s --max-time 10 https://dl.k8spilot.icu/kubernetes/kube-versions)
+  if [ "$?" -ne 0 ] || [ -z "${version_list}" ]; then
+    local kube_version=$(grep 'kube_version' $(dirname ${BASH_SOURCE[0]})/inventory/group_vars/all.yml|awk '{print $NF}')
+    read -p "在线读取kubernetes版本列表失败,将安装默认 ${kube_version} 是否安装？[Y/n]:" confirm
+    if [ "$(uname)" == "Darwin" ]; then
+      local confirm_lower=$(echo "$confirm" | awk '{print tolower($0)}')
+    else
+      local confirm_lower=${confirm,,}
+    fi
+    if [ "${confirm_lower}" == "n" ]; then
+      echo "已取消安装"
+      exit 0
+    fi
+  else
+    printf "\e[32m${version_list}\e[0m\n"
+    local default_version=$(echo "${version_list}"|sed -n '$p')
+    read -p "请从以上版本列表选择并输入本次安装的kubernetes版本 [默认:${default_version}]:" version
+    if [ ! -z "${version}" ]; then
+      if ! echo "${version_list}"|grep ${version} > /dev/null; then
+        printf "\e[32m你输入kubernetes版本${version}不在支持列表中\e[0m\n"
+        exit 1
+      fi
+      printf "\e[32m已选择安装kubernetes $version\e[0m\n"
+    else
+      version=${default_version}
+    fi
+    if [ "$(uname)" == "Darwin" ]; then
+      sed -i '' "s#kube_version: .*#kube_version: $version#g" $(dirname ${BASH_SOURCE[0]})/inventory/group_vars/all.yml
+    else
+      sed -i "s#kube_version: .*#kube_version: $version#g" $(dirname ${BASH_SOURCE[0]})/inventory/group_vars/all.yml
+    fi
+  fi
+}
+
+deploy_kube(){
+  printf "\e[32m开始安装kubernetes集群\e[0m\n"
+  local inventory_file="inventory.ini"
+  if [ ! -z "${K8SPILOT}" ]; then
+    inventory_file="local.ini"
+  fi
+  ansible-playbook -i $(dirname ${BASH_SOURCE[0]})/inventory/${inventory_file} pilot.yml
+}
+
+case $1 in
+    deploy)
+    check_requirements
+    check_inventory
+    select_kube_version
+    deploy_kube
+    ;;
+esac
