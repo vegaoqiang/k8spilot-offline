@@ -47,6 +47,19 @@
   ansible.builtin.include_role:
     name: "{{ cni_povider }}"
 
+- name: Copy CoreDNS Image To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/images/coredns"
+    dest: "/tmp/"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['worker'] }}"
+
+- name: Load CoreDNS Images
+  ansible.builtin.shell: |
+    ls /tmp/coredns/*.tar|xargs -n 1 ctr -n k8s.io i import
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['worker'] }}"
+
 - name: Copy CoreDNS YML To Control
   ansible.builtin.template:
     src: coredns.yaml
