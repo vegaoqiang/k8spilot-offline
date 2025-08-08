@@ -90,14 +90,6 @@
     sed -i "/#.*swap/! s/.*swap.*/#&/" /etc/fstab
     sysctl --system
 
-
-- name: Create Temp Directory In localhost
-  ansible.builtin.file:
-    path: "{{ playbook_dir }}/.ansible_temp"
-    state: directory
-    mode: '0755'
-  run_once: true
-  delegate_to: localhost
   
 - name: Copy Cfssl Tool To Remote Host
   ansible.builtin.copy:
