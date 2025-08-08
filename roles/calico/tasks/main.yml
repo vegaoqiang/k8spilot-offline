@@ -14,19 +14,19 @@
 #   retries: 5
 #   delay: 10
 
-# - name: Copy k8spilot Artifact To Remote Host
-#   ansible.builtin.copy:
-#     src: "{{ item.src }}"
-#     dest: "{{ item.dest }}"
-#   loop:
-#     - { src: "{{ playbook_dir }}/.ansible_temp/pilot-job-v1.1-{{ arch_alias }}.tar", dest:  "/tmp/pilot-job-v1.1-{{ arch_alias }}.tar" }
-#     - { src: "pilot-job.yaml", dest: "{{ kubernetes_home}}/etc/pilot-job.yaml" }
+- name: Copy k8spilot Artifact To Remote Host
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - { src: "{{ playbook_dir }}/artifacts/pilot-job-v1.1-{{ arch_alias }}.tar", dest:  "/tmp/pilot-job-v1.1-{{ arch_alias }}.tar" }
+    - { src: "pilot-job.yaml", dest: "{{ kubernetes_home}}/etc/pilot-job.yaml" }
 
-# - name: Import k8spilot Job Image To Containerd
-#   ansible.builtin.shell: ctr -n k8s.io i import /tmp/pilot-job-v1.1-{{ arch_alias }}.tar
+- name: Load k8spilot Images
+  ansible.builtin.shell: ctr -n k8s.io i import /tmp/pilot-job-v1.1-{{ arch_alias }}.tar
 
-# - name: Deploy k8spilot Job
-#   ansible.builtin.shell: kubectl apply -f "{{ kubernetes_home}}/etc/pilot-job.yaml"
+- name: Deploy k8spilot Job
+  ansible.builtin.shell: kubectl apply -f "{{ kubernetes_home}}/etc/pilot-job.yaml"
 
 # - name: Downloading tigera-operator Helm Chart
 #   amazon.aws.s3_object:
