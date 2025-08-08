@@ -23,6 +23,19 @@
     ls /tmp/cilium/*.tar|xargs -n 1 ctr -n k8s.io i import
   delegate_to: "{{ item }}"
   loop: "{{ groups['worker'] }}"
+  async: 3600
+  poll: 0
+  # register: async_results
+
+# - name: Wait for Cilium images to be loaded
+#   ansible.builtin.async_status:
+#     jid: "{{ item.ansible_job_id }}"
+#   register: job_result
+#   until: job_result.finished
+#   retries: 30
+#   delay: 10
+#   delegate_to: "{{ item.item }}"
+#   loop: "{{ async_results.results }}"
 
 - name: Install Cilium
   ansible.builtin.shell: |
