@@ -46,26 +46,40 @@
 #         ingressClassResource:
 #           default: true
         
-- name: Downloading Ingress-Nginx Manifest
-  amazon.aws.s3_object:
-    endpoint_url: "{{ s3_endpoint_url }}"
-    access_key: "{{ s3_access_key }}"
-    secret_key: "{{ s3_secret_key }}"
-    bucket: "{{ s3_bucket_name }}"
-    object: "ingress-nginx/{{ ingress_nginx_version }}/deploy.yaml"
-    dest: "{{ playbook_dir }}/.ansible_temp/ingress-nginx.yaml"
-    mode: get
-    overwrite: different
-  delegate_to: localhost
-  run_once: true
+# - name: Downloading Ingress-Nginx Manifest
+#   amazon.aws.s3_object:
+#     endpoint_url: "{{ s3_endpoint_url }}"
+#     access_key: "{{ s3_access_key }}"
+#     secret_key: "{{ s3_secret_key }}"
+#     bucket: "{{ s3_bucket_name }}"
+#     object: "ingress-nginx/{{ ingress_nginx_version }}/deploy.yaml"
+#     dest: "{{ playbook_dir }}/.ansible_temp/ingress-nginx.yaml"
+#     mode: get
+#     overwrite: different
+#   delegate_to: localhost
+#   run_once: true
+
+- name: Copy Ingress-Nginx Images To Remote Host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/images/ingress-nginx"
+    dest: "/tmp/"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['worker'] }}"
+
+- name: Load Ingress-Nginx Images
+  ansible.builtin.shell: |
+    ls /tmp/ingress-nginx/*.tar|xargs -n 1 ctr -n k8s.io i import
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['worker'] }}"
+  async: 3600
+  poll: 0
 
 - name: Copy Ingress-Nginx Manifest To Remote Host
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/.ansible_temp/ingress-nginx.yaml"
+    src: "{{ playbook_dir }}/artifacts/ingress-nginx.yaml"
     dest: "/tmp/ingress-nginx.yaml"
 
 - name: Install Ingress-Nginx Use Manifest
   ansible.builtin.shell: |
-    sed -i "s#registry.k8s.io#{{ ingress_registry_prefix }}/registry.k8s.io#g" /tmp/ingress-nginx.yaml
     kubectl apply -f /tmp/ingress-nginx.yaml
     kubectl patch ingressclass nginx -p '{"metadata":{"annotations":{"ingressclass.kubernetes.io/is-default-class":"true"}}}'
