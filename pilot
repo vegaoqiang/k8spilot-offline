@@ -81,7 +81,7 @@ case $1 in
     deploy)
     check_requirements
     check_inventory
-    select_kube_version
+    # select_kube_version
     deploy_kube
     ;;
 esac
