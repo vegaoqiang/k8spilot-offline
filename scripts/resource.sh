@@ -174,10 +174,10 @@ dl_cfssl(){
   local arch_type=$1
   local version=$2
   local componemens=("cfssl" "cfssljson")
-  local sha256sum_url="https://github.com/cloudflare/cfssl/releases/download/${version}/cfssl_${version##*v}_checksums.txt"
+  local sha256sum_url="https://github.com/cloudflare/cfssl/releases/download/v${version}/cfssl_${version}_checksums.txt"
   for file in "${componemens[@]}"; do
-    local file_name="${file}_${version##*v}_linux_${arch_type}"
-    local file_url="https://github.com/cloudflare/cfssl/releases/download/${version}/${file_name}"
+    local file_name="${file}_${version}_linux_${arch_type}"
+    local file_url="https://github.com/cloudflare/cfssl/releases/download/v${version}/${file_name}"
     dl_and_validation "${file_url}" "${sha256sum_url}" "${file_name}"
   done
 }

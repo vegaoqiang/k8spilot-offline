@@ -59,7 +59,7 @@
 
 - name: Copy runc Binary To Remote Host
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/artifacts/runc"
+    src: "{{ playbook_dir }}/artifacts/runc.{{ arch_alias }}"
     dest: "/usr/local/sbin/runc"
     mode: '0755'
 
@@ -73,21 +73,6 @@
     src: "/tmp/containerd-{{ containerd_version }}-linux-{{ arch_alias }}.tar.gz"
     dest: "/usr/local/"
     mode: '0755'
-
-# - name: Install Containerd With Plugins
-#   ansible.builtin.shell: |
-#     tar -xf /tmp/containerd-{{ containerd_version }}-linux-{{ arch_alias }}.tar.gz -C /usr/local/
-#     if [ ! -d "/opt/cni/bin" ]; then
-#       mkdir -p /opt/cni/bin
-#     fi
-#     if [ ! -d /etc/cni/net.d ]; then
-#       mkdir -p /etc/cni/net.d
-#     fi
-#     if [ ! -d /etc/containerd ]; then
-#       mkdir -p /etc/containerd
-#     fi
-#     tar --strip-components=1 -xf /tmp/cni-plugins-linux-{{ arch_alias }}-{{ cni_version }}.tgz -C /opt/cni/bin/
-#     chmod +x /usr/local/sbin/runc
   
 - name: Install Worker Certificate And Service File
   copy:
