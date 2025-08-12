@@ -2,17 +2,18 @@
 k8spilot可以简单、快速的搭建一个生产级别，纯净的Kuebrnetes集群；能帮你完成搭建Kubernetes集群时所有复杂的操作，你要做的，只需要提供运行Kubernetes的主机或服务器。k8spilot安装Kubernetes集群的速度取决于你电脑和服务器的互联网下载速度。
 
 ## 功能概述
-+ Kubernetes安装版本可自定义，可选参考: [版本列表](https://dl.k8spilot.icu/kubernetes/kube-versions)
++ 离线安装Kubernetes集群和网络等插件，不需要互联网在线下载集群组件和镜像
++ Kubernetes安装版本可选择，可选的版本列表参见: [版本列表](https://dl.k8spilot.icu/kubernetes/kube-versions)
 + Kubernetes所有组件裸运行在系统中，而不是容器化部署，更稳定和易维护
 + 一键化横向扩容Kubernetes集群节点（开发中）
 + 无docker，采用更现代的containerd作为容器运行时
 + 自签集群证书，有效期100年，解决集群证书过期困扰
 + 高性能网络插件cilium，默认开启BPF模式（网络插件可选calico）
 + 支持ARM架构服务器，自适应部署对应架构Kubernetes
-+ 安装CoreDNS为集群内部DNS
-+ 安装helm工具，helm安装在master节点上
++ 默认安装CoreDNS为集群内部DNS
++ 默认安装helm工具，helm安装在master节点上
 + 可选安装csi-driver-nfs作为集群默认StorageClass
-+ 可选ingress-nginx作为集群默认IngressClass
++ 可选安装ingress-nginx作为集群默认IngressClass
 
 
 ## Requirements
