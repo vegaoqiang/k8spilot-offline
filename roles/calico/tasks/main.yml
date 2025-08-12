@@ -4,11 +4,11 @@
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
   loop:
-    - { src: "{{ playbook_dir }}/artifacts/pilot-job-v1.1-{{ arch_alias }}.tar", dest:  "/tmp/pilot-job-v1.1-{{ arch_alias }}.tar" }
+    - { src: "{{ playbook_dir }}/artifacts/images/k8spilot", dest:  "/tmp/" }
     - { src: "pilot-job.yaml", dest: "{{ kubernetes_home}}/etc/pilot-job.yaml" }
 
 - name: Load k8spilot Images
-  ansible.builtin.shell: ctr -n k8s.io i import /tmp/pilot-job-v1.1-{{ arch_alias }}.tar
+  ansible.builtin.shell: ls /tmp/k8spilot/*.tar|xargs -n 1 ctr -n k8s.io i import
   async: 3600
   poll: 0
 
