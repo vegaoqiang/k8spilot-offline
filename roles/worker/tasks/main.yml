@@ -125,10 +125,10 @@
 
 - name: Copy PAUSE Image To Remote Host
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/artifacts/pause-{{ pause_version }}-{{ arch_alias }}.tar"
-    dest: "/tmp/pause-{{ pause_version }}-{{ arch_alias }}.tar"
+    src: "{{ playbook_dir }}/artifacts/images/pause"
+    dest: "/tmp/"
 
 - name: Load PAUSE Image
   ansible.builtin.shell: |
-    ctr -n k8s.io images import /tmp/pause-{{ pause_version }}-{{ arch_alias }}.tar
-    rm -f /tmp/pause-{{ pause_version }}-{{ arch_alias }}.tar
+    ls /tmp/pause/*.tar |ctr -n k8s.io images import
+    rm -f /tmp/pause
