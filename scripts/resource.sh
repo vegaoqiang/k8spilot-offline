@@ -10,7 +10,7 @@ fi
 VAR_FILE="$(dirname ${BASH_SOURCE[0]})/../inventories/${ENV}/group_vars/${VAR}"
 RESOURCE_DIR="$(dirname ${BASH_SOURCE[0]})/../artifacts"
 
-if [ -d "${RESOURCE_DIR}" ]; then
+if [ ! -d "${RESOURCE_DIR}" ]; then
   mkdir -p ${RESOURCE_DIR}/images
 fi
 
@@ -52,24 +52,24 @@ dl_and_validation(){
   local file_url=$1
   local sha256sum_url=$2
   local file_name=$3
-  local dl_file_path=$(dl_handler "${file_url}" "${file_name}")
-  if [ "$?" -ne 0 ]; then
+  echo "开始下载 ${file_name}"
+  # local dl_file_path=$(dl_handler "${file_url}" "${file_name}")
+  if ! dl_file_path=$(dl_handler "${file_url}" "${file_name}"); then
     echo "下载 ${file_name} 失败"
     exit 1
   fi
   echo "已下载 ${file_name} 到 ${dl_file_path}"
 
-  local local_sha256sum=$(sha256sum ${dl_file_path} | awk '{print $1}')
+  local local_sha256sum=$(sha256sum ${dl_file_path})
   # 提供了sha256sum_url必须要校验本地和远程的sha256sum
   if [ ! -z "${sha256sum_url}" ]; then
-    local remote_sha256sum=$(lookup_sha256_online "${sha256sum_url}") 
-    if [ "$?" -ne 0 ]; then
+    if ! remote_sha256sum=$(lookup_sha256_online "${sha256sum_url}") ; then
       echo "获取远程${sha256sum_url}失败"
       exit 1
     fi
-    if [ $(echo ${remote_sha256sum}|wc -l|xargs) -gt 1 ]; then
+    if [ $(echo "${remote_sha256sum}"|wc -l|xargs) -gt 1 ]; then
       echo "远程${sha256sum_url}返回了多个sha256sum值"
-      remote_sha256sum=$(echo ${remote_sha256sum}|grep ${file_name}) # 部分软件将多个文件的sha256sum放在同一个文件中
+      remote_sha256sum=$(echo "${remote_sha256sum}"|grep ${file_name}) # 部分软件将多个文件的sha256sum放在同一个文件中
     fi
     validation_sha256sum "${local_sha256sum// *}" "${remote_sha256sum// *}"
   fi
@@ -181,3 +181,154 @@ dl_cfssl(){
     dl_and_validation "${file_url}" "${sha256sum_url}" "${file_name}"
   done
 }
+
+dl_bineries(){
+  local arch_type=$1
+  if [ -z "${arch_type}" ]; then
+    echo "arch_type 不能为空"
+    exit 1
+  fi
+  if [ ! -f ${VAR_FILE} ]; then
+    echo "缺少 ${VAR_FILE} 文件"
+    exit 1
+  fi
+  cfssl_version=$(cat ${VAR_FILE} | grep -E '^\s*cfssl_version:' | awk -F: '{print $2}' | xargs)
+  ingress_version=$(cat ${VAR_FILE} | grep -E '^\s*ingress_nginx_version:' | awk -F: '{print $2}' | xargs)
+  csi_version=$(cat ${VAR_FILE} | grep -E '^\s*csi_nfs_version:' | awk -F: '{print $2}' | xargs)
+  cilium_version=$(cat ${VAR_FILE} | grep -E '^\s*cilium_version:' | awk -F: '{print $2}' | xargs)
+  tigera_operator_version=$(cat ${VAR_FILE} | grep -E '^\s*calico_version:' | awk -F: '{print $2}' | xargs)
+  kube_version=$(cat ${VAR_FILE} | grep -E '^\s*kube_version:' | awk -F: '{print $2}' | xargs)
+  helm_version=$(cat ${VAR_FILE} | grep -E '^\s*helm_version:' | awk -F: '{print $2}' | xargs)
+  cni_plugins_version=$(cat ${VAR_FILE} | grep -E '^\s*cni_version:' | awk -F: '{print $2}' | xargs)
+  runc_version=$(cat ${VAR_FILE} | grep -E '^\s*runc_version:' | awk -F: '{print $2}' | xargs)
+  etcd_version=$(cat ${VAR_FILE} | grep -E '^\s*etcd_version:' | awk -F: '{print $2}' | xargs)
+  containerd_version=$(cat ${VAR_FILE} | grep -E '^\s*containerd_version:' | awk -F: '{print $2}' | xargs)
+  if [ -z "${containerd_version}" ] || [ -z "${etcd_version}" ] || [ -z "${runc_version}" ] || [ -z "${cni_plugins_version}" ] || [ -z "${helm_version}" ] || [ -z "${kube_version}" ] || [ -z "${tigera_operator_version}" ] || [ -z "${cilium_version}" ] || [ -z "${csi_version}" ] || [ -z "${ingress_version}" ] || [ -z "${cfssl_version}" ]; then
+    echo "无法获取必要的版本变量"
+    exit 1
+  fi
+  if [ -z "${cfssl_version}" ]; then
+    echo "无法获取 cfssl_version 变量"
+    exit 1
+  fi
+  dl_cfssl $arch_type $cfssl_version
+  dl_ingress $arch_type $ingress_version
+  dl_csi $arch_type $csi_version
+  dl_cilium $arch_type $cilium_version
+  dl_tigera_operator $arch_type $tigera_operator_version
+  dl_kube_binaries $arch_type $kube_version
+  dl_helm $arch_type $helm_version
+  dl_cni_plugins $arch_type $cni_plugins_version
+  dl_runc $arch_type $runc_version
+  dl_etcd $arch_type $etcd_version
+  dl_containerd $arch_type $containerd_version
+}
+
+
+image_handler(){
+  local arch_type=$1
+  local image_repo=$2
+  local local_path=$3
+  echo "pull image ${image_repo} to ${local_path}"
+  crane pull --platform linux/${arch_type} ${image_repo} ${local_path}
+  if [ "$?" -ne 0 ]; then
+    echo "拉取镜像 ${image_repo} 失败"
+    exit 1
+  fi
+  echo "已拉取镜像 ${image_repo} 到 ${local_path}"
+}
+
+
+pull_image(){
+  local arch_type=$1
+  local local_dir=$2
+  local version_file_name=$3
+  local local_path="${RESOURCE_DIR}/${local_dir}"
+  if [ ! -d "${local_path}" ]; then
+    mkdir -p ${local_path}
+  fi
+  local version_file_path="$(dirname ${BASH_SOURCE[0]})/../versions/${version_file_name}"
+  if [ ! -f "${version_file_path}" ]; then
+    echo "缺少 ${version_file_path} 文件"
+    exit 1
+  fi
+  local images_list=$(cat ${version_file_path} | grep -vE '^\s*#' | grep -vE '^\s*$')
+  for image_repo in ${images_list}; do
+    local image_name=${image_repo##*/}
+    image_name=${image_name%%:*}
+    local image_version=${image_repo##*:}
+    local local_file="${image_name}_${image_version}_${arch_type}.tar"
+    image_handler "${arch_type}" "${image_repo}" "${local_path}/${local_file}"
+  done
+}
+
+pull_ingress_nginx_image(){
+  local arch_type=$1
+  local version_file_name="ingress-nginx"
+  local local_dir="images/ingress-nginx"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+}
+
+pull_cilium_image(){
+  local arch_type=$1
+  local version_file_name="cilium"
+  local local_dir="images/cilium"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+} 
+
+pull_csi_image(){
+  local arch_type=$1
+  local version_file_name="csi"
+  local local_dir="images/csi-driver-nfs"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+}
+
+pull_coredns_image(){
+  local arch_type=$1
+  local version_file_name="coredns"
+  local local_dir="images/coredns"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+} 
+
+pull_calico_image(){
+  local arch_type=$1
+  local version_file_name="calico"
+  local local_dir="images/calico"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+} 
+
+pull_pause_image(){
+  local arch_type=$1
+  local version_file_name="pause"
+  local local_dir="images/pause"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+}
+
+pull_pilot_image(){
+  local arch_type=$1
+  local version_file_name="k8spilot"
+  local local_dir="images/k8spilot"
+  pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
+}
+
+main(){
+  local arch_type=$1
+  if [ -z "${arch_type}" ]; then
+    echo "arch_type 不能为空"
+    exit 1
+  fi
+  if [ "${arch_type}" != "amd64" ] && [ "${arch_type}" != "arm64" ]; then
+    echo "arch_type 只能是 amd64 或 arm64"
+    exit 1
+  fi
+  dl_bineries "${arch_type}"
+  pull_ingress_nginx_image "${arch_type}"
+  pull_cilium_image "${arch_type}"
+  pull_csi_image "${arch_type}"
+  pull_coredns_image "${arch_type}"
+  pull_calico_image "${arch_type}"
+  pull_pause_image "${arch_type}"
+  pull_pilot_image "${arch_type}"
+}
+
+main $1

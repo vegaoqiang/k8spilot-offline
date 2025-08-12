@@ -1,0 +1,6 @@
+quay.io/tigera/operator:v1.38.3
+docker.m.daocloud.io/calico/kube-controllers:v3.30.2
+docker.m.daocloud.io/calico/pod2daemon-flexvol:v3.30.2
+docker.m.daocloud.io/calico/node:v3.30.2
+docker.m.daocloud.io/calico/cni:v3.30.2
+docker.m.daocloud.io/calico/typha:v3.30.2
