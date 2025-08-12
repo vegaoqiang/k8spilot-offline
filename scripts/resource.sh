@@ -74,7 +74,7 @@ dl_and_validation(){
     validation_sha256sum "${local_sha256sum// *}" "${remote_sha256sum// *}"
   fi
   
-  echo "${local_sha256sum}" >> ${RESOURCE_DIR}/sha256sums.txt
+  echo "${local_sha256sum// *}  ${file_name}" >> ${RESOURCE_DIR}/sha256sums.txt
 }
 
 dl_containerd(){
