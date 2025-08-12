@@ -52,7 +52,7 @@ dl_and_validation(){
   local file_url=$1
   local sha256sum_url=$2
   local file_name=$3
-  echo "开始下载 ${file_name}"
+  echo "开始从 ${file_url} 下载 ${file_name}"
   # local dl_file_path=$(dl_handler "${file_url}" "${file_name}")
   if ! dl_file_path=$(dl_handler "${file_url}" "${file_name}"); then
     echo "下载 ${file_name} 失败"
