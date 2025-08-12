@@ -1,5 +1,5 @@
 # k8spilot
-k8spilot可以简单、快速的搭建一个生产级别，纯净的Kuebrnetes集群；能帮你完成搭建Kubernetes集群时所有复杂的操作，你要做的，只需要提供运行Kubernetes的主机或服务器。k8spilot安装Kubernetes集群的速度取决于你电脑和服务器的互联网下载速度。
+`k8spilot-offline`可以帮助你在没有互联网的环境中简单、快速的搭建一个生产级别，纯净的Kuebrnetes集群；`k8spilot-offline`收集了安装Kubernetes集群时所需要的所有文件，并能帮你完成搭建Kubernetes集群时所有复杂的操作，你要做的，只需要提供运行Kubernetes的主机或服务器。
 
 ## 功能概述
 + 离线安装Kubernetes集群和网络等插件，不需要互联网在线下载集群组件和镜像
