@@ -16,12 +16,12 @@
 
 - name: Copy Ingress-Nginx Manifest To Remote Host
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/artifacts/ingress-nginx.yaml"
-    dest: "/tmp/ingress-nginx.yaml"
+    src: "{{ playbook_dir }}/artifacts/ingress-nginx-{{ ingress_nginx_version }}.yaml"
+    dest: "/tmp/ingress-nginx-{{ ingress_nginx_version }}.yaml"
 
 - name: Install Ingress-Nginx Use Manifest
   ansible.builtin.shell: |
-    sed -i -E  's#@sha256:[a-f0-9]+##g' /tmp/ingress-nginx.yaml
-    sed -i "s#registry.k8s.io#{{ ingress_registry_prefix }}/registry.k8s.io#g" /tmp/ingress-nginx.yaml
-    kubectl apply -f /tmp/ingress-nginx.yaml
+    sed -i -E  's#@sha256:[a-f0-9]+##g' /tmp/ingress-nginx-{{ ingress_nginx_version }}.yaml
+    sed -i "s#registry.k8s.io#{{ ingress_registry_prefix }}/registry.k8s.io#g" /tmp/ingress-nginx-{{ ingress_nginx_version }}.yaml
+    kubectl apply -f /tmp/ingress-nginx-{{ ingress_nginx_version }}.yaml
     kubectl patch ingressclass nginx -p '{"metadata":{"annotations":{"ingressclass.kubernetes.io/is-default-class":"true"}}}'
