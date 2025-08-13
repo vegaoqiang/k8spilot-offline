@@ -1,6 +1,7 @@
 name: Download Artifacts CI
 
 on:
+  workflow_dispatch:
 
 
 jobs:
