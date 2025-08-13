@@ -95,7 +95,7 @@
 - name: Downloading Encode Client Config
   ansible.builtin.fetch:
     src: /root/.kube/config-encode
-    dest: "{{ playbook_dir }}/"
+    dest: "{{ playbook_dir }}/.kubeconfig"
     flat: true
 
 - name: Enable Kubernetes Master Service
