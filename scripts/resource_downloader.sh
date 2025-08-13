@@ -217,6 +217,7 @@ dl_bineries(){
   runc_version=$(get_dl_version "runc_version") || { echo "无法获取 runc_version 版本"; exit 1; }
   etcd_version=$(get_dl_version "etcd_version") || { echo "无法获取 etcd_version 版本"; exit 1; }
   containerd_version=$(get_dl_version "containerd_version") || { echo "无法获取 containerd_version 版本"; exit 1; }
+  # 在终端中使用KUBE_VERSION=v1.33.3设置kubernetes版本环境变量
   kube_version=$(get_kube_version)
 
   dl_cfssl $arch_type $cfssl_version
