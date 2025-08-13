@@ -16,3 +16,4 @@ config-encode
 .ansible_temp
 artifacts
 inventories/local
+.DS_Store

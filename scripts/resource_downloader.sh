@@ -77,6 +77,15 @@ dl_and_validation(){
   echo "${local_sha256sum// *}  ${file_name}" >> ${RESOURCE_DIR}/sha256sums
 }
 
+get_dl_version(){
+  local version_name=$1
+  local version=$(cat ${VAR_FILE} | grep "${version_name}"|awk '{print $NF}'|xargs)
+  if [ -z "${version}" ]; then
+    return 1 
+  fi
+  printf "${version}"
+}
+
 dl_containerd(){
   local arch_type=$1
   local version=$2
@@ -184,33 +193,22 @@ dl_cfssl(){
 
 dl_bineries(){
   local arch_type=$1
-  if [ -z "${arch_type}" ]; then
-    echo "arch_type 不能为空"
-    exit 1
-  fi
   if [ ! -f ${VAR_FILE} ]; then
     echo "缺少 ${VAR_FILE} 文件"
     exit 1
   fi
-  cfssl_version=$(cat ${VAR_FILE} | grep -E '^\s*cfssl_version:' | awk -F: '{print $2}' | xargs)
-  ingress_version=$(cat ${VAR_FILE} | grep -E '^\s*ingress_nginx_version:' | awk -F: '{print $2}' | xargs)
-  csi_version=$(cat ${VAR_FILE} | grep -E '^\s*csi_nfs_version:' | awk -F: '{print $2}' | xargs)
-  cilium_version=$(cat ${VAR_FILE} | grep -E '^\s*cilium_version:' | awk -F: '{print $2}' | xargs)
-  tigera_operator_version=$(cat ${VAR_FILE} | grep -E '^\s*calico_version:' | awk -F: '{print $2}' | xargs)
-  kube_version=$(cat ${VAR_FILE} | grep -E '^\s*kube_version:' | awk -F: '{print $2}' | xargs)
-  helm_version=$(cat ${VAR_FILE} | grep -E '^\s*helm_version:' | awk -F: '{print $2}' | xargs)
-  cni_plugins_version=$(cat ${VAR_FILE} | grep -E '^\s*cni_version:' | awk -F: '{print $2}' | xargs)
-  runc_version=$(cat ${VAR_FILE} | grep -E '^\s*runc_version:' | awk -F: '{print $2}' | xargs)
-  etcd_version=$(cat ${VAR_FILE} | grep -E '^\s*etcd_version:' | awk -F: '{print $2}' | xargs)
-  containerd_version=$(cat ${VAR_FILE} | grep -E '^\s*containerd_version:' | awk -F: '{print $2}' | xargs)
-  if [ -z "${containerd_version}" ] || [ -z "${etcd_version}" ] || [ -z "${runc_version}" ] || [ -z "${cni_plugins_version}" ] || [ -z "${helm_version}" ] || [ -z "${kube_version}" ] || [ -z "${tigera_operator_version}" ] || [ -z "${cilium_version}" ] || [ -z "${csi_version}" ] || [ -z "${ingress_version}" ] || [ -z "${cfssl_version}" ]; then
-    echo "无法获取必要的版本变量"
-    exit 1
-  fi
-  if [ -z "${cfssl_version}" ]; then
-    echo "无法获取 cfssl_version 变量"
-    exit 1
-  fi
+  cfssl_version=$(get_dl_version "cfssl_version") || { echo "无法获取 cfssl_version 版本"; exit 1; }
+  ingress_version=$(get_dl_version "ingress_nginx_version") || { echo "无法获取 ingress_nginx_version 版本"; exit 1; }
+  csi_version=$(get_dl_version "csi_nfs_version") || { echo "无法获取 csi_nfs_version 版本"; exit 1; }
+  cilium_version=$(get_dl_version "cilium_version") || { echo "无法获取 cilium_version 版本"; exit 1; }
+  tigera_operator_version=$(get_dl_version "calico_version") || { echo "无法获取 calico_version 版本"; exit 1; }
+  kube_version=$(get_dl_version "kube_version") || { echo "无法获取 kube_version 版本"; exit 1; }
+  helm_version=$(get_dl_version "helm_version") || { echo "无法获取 helm_version 版本"; exit 1; }
+  cni_plugins_version=$(get_dl_version "cni_version") || { echo "无法获取 cni_version 版本"; exit 1; }
+  runc_version=$(get_dl_version "runc_version") || { echo "无法获取 runc_version 版本"; exit 1; }
+  etcd_version=$(get_dl_version "etcd_version") || { echo "无法获取 etcd_version 版本"; exit 1; }
+  containerd_version=$(get_dl_version "containerd_version") || { echo "无法获取 containerd_version 版本"; exit 1; }
+
   dl_cfssl $arch_type $cfssl_version
   dl_ingress $arch_type $ingress_version
   dl_csi $arch_type $csi_version
@@ -311,6 +309,17 @@ pull_pilot_image(){
   pull_image "${arch_type}" "${local_dir}" "${version_file_name}"
 }
 
+dl_images(){
+  local arch_type=$1
+  pull_ingress_nginx_image "${arch_type}"
+  pull_cilium_image "${arch_type}"
+  pull_csi_image "${arch_type}"
+  pull_coredns_image "${arch_type}"
+  pull_calico_image "${arch_type}"
+  pull_pause_image "${arch_type}"
+  pull_pilot_image "${arch_type}"
+}
+
 main(){
   local arch_type=$1
   if [ -z "${arch_type}" ]; then
@@ -322,13 +331,7 @@ main(){
     exit 1
   fi
   dl_bineries "${arch_type}"
-  pull_ingress_nginx_image "${arch_type}"
-  pull_cilium_image "${arch_type}"
-  pull_csi_image "${arch_type}"
-  pull_coredns_image "${arch_type}"
-  pull_calico_image "${arch_type}"
-  pull_pause_image "${arch_type}"
-  pull_pilot_image "${arch_type}"
+  dl_images "${arch_type}"
 }
 
 main $1
