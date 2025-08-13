@@ -38,7 +38,7 @@ check_inventory(){
 
 check_artifacts(){
   if [ ! -d $(dirname ${BASH_SOURCE[0]})/artifacts ] || [ -z "$(ls ${BASH_SOURCE[0]})/artifacts)" ]; then
-    echo "离线资源不存在，请先下载离线资源"
+    echo "未找到离线资源，请先下载离线资源"
     exit 1
   fi
 }
@@ -47,6 +47,13 @@ deploy_kube(){
   local kube_version=$(cat $(dirname ${BASH_SOURCE[0]})/artifacts/kube_version)
   printf "\e[32m开始安装Kubernetes ${kube_version}\e[0m\n"
   ansible-playbook -i $(dirname ${BASH_SOURCE[0]})/inventories/${ENV}/${INVENTORY} pilot.yml
+  if [ "$?" -eq 0 ]; then
+    printf "\e[32mKubernetes ${kube_version}安装完成.\e[0m"
+    printf "\e[32m请登录到Kubernetes集群control-plane节点，执行以下命令查看集群状态: \e[0m\n"
+    printf "\e[32mkubectl get nodes -o wide \e[0m\n"
+    printf "\e[32m也可以使用lens等工具连接到Kubernetes进行集群管理。复制以下文件或将其内容添加到lens的kubeconfig中: \e[0m\n"
+    printf "\e[32mcat .kubeconfig \e[0m\n"
+  fi
 }
 
 case $1 in
