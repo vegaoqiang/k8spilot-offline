@@ -347,10 +347,10 @@ main(){
     dl_kube "${arch_type}" "$(get_kube_version)"
   elif [ "${specify_download}" == "image" ]; then
     dl_images "${arch_type}"
-  elif [ "${specify_download}" == "components" ]; then
+  elif [ "${specify_download}" == "component" ]; then
     dl_components "${arch_type}"
   else
-    echo "未知的下载选项: ${specify_download}, 可选值为 kube, image, components 或不指定"
+    echo "未知的下载选项: ${specify_download}, 可选值为 kube, image, component 或不指定"
     exit 1
   fi
   echo "所有资源下载完成"
@@ -358,7 +358,7 @@ main(){
 
 
 # -p: platform, amd64 or arm64
-# -s: specify download file, kube, image or comonents, if not set, download all
+# -s: specify download file, kube, image or comonent, if not set, download all
 # -k: kube_version, specify the Kubernetes version to download, v1.33.3 by default
 # Usage: ./resource_downloader.sh -p amd64 -s kube -k v1.33.3
 while getopts ":p:s:k" opt; do
