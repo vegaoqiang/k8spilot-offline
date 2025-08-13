@@ -131,4 +131,3 @@
 - name: Load PAUSE Image
   ansible.builtin.shell: |
     ls /tmp/pause/*.tar|xargs -n 1 ctr -n k8s.io images import
-    rm -f /tmp/pause
