@@ -92,7 +92,7 @@ get_kube_version(){
   else
     local kube_version="${KUBE_VERSION}"
   fi
-  echo "${kube_version}" > ${RESOURCE_DIR}/kube_version
+  echo "${kube_version}" > ${RESOURCE_DIR}/kube-version
   printf "${kube_version}"
 }
 

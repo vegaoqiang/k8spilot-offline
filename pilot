@@ -44,7 +44,7 @@ check_artifacts(){
 }
 
 deploy_kube(){
-  local kube_version=$(cat $(dirname ${BASH_SOURCE[0]})/artifacts/kube_version)
+  local kube_version=$(cat $(dirname ${BASH_SOURCE[0]})/artifacts/kube-version)
   printf "\e[32m开始安装Kubernetes ${kube_version}\e[0m\n"
   ansible-playbook -i $(dirname ${BASH_SOURCE[0]})/inventories/${ENV}/${INVENTORY} pilot.yml
   if [ "$?" -eq 0 ]; then
