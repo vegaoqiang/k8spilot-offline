@@ -86,12 +86,22 @@ get_dl_version(){
   printf "${version}"
 }
 
+get_kube_version(){
+  if [ -z "${KUBE_VERSION}" ]; then
+    local kube_version="v1.33.3"
+  else
+    local kube_version="${KUBE_VERSION}"
+  fi
+  echo "${kube_version}" > ${RESOURCE_DIR}/kube_version
+  printf "${kube_version}"
+}
+
 dl_containerd(){
   local arch_type=$1
   local version=$2
-  local file_name="containerd-${version##*v}-linux-${arch_type}.tar.gz"
-  local file_url="https://github.com/containerd/containerd/releases/download/${version}/containerd-${version##*v}-linux-${arch_type}.tar.gz"
-  local sha256sum_url="https://github.com/containerd/containerd/releases/download/${version}/containerd-${version##*v}-linux-${arch_type}.tar.gz.sha256sum"
+  local file_name="containerd-${version}-linux-${arch_type}.tar.gz"
+  local file_url="https://github.com/containerd/containerd/releases/download/v${version}/containerd-${version}-linux-${arch_type}.tar.gz"
+  local sha256sum_url="https://github.com/containerd/containerd/releases/download/v${version}/containerd-${version}-linux-${arch_type}.tar.gz.sha256sum"
   dl_and_validation "${file_url}" "${sha256sum_url}" "${file_name}"
 }
 
@@ -131,7 +141,7 @@ dl_helm(){
   dl_and_validation "${file_url}" "${sha256sum_url}" "${file_name}"
 }
 
-dl_kube_binaries(){
+dl_kube(){
   local arch_type=$1
   local version=$2
   local componemens=(kubectl kube-apiserver kube-controller-manager kube-scheduler kubectl kubelet)
@@ -202,19 +212,19 @@ dl_bineries(){
   csi_version=$(get_dl_version "csi_nfs_version") || { echo "无法获取 csi_nfs_version 版本"; exit 1; }
   cilium_version=$(get_dl_version "cilium_version") || { echo "无法获取 cilium_version 版本"; exit 1; }
   tigera_operator_version=$(get_dl_version "calico_version") || { echo "无法获取 calico_version 版本"; exit 1; }
-  kube_version=$(get_dl_version "kube_version") || { echo "无法获取 kube_version 版本"; exit 1; }
   helm_version=$(get_dl_version "helm_version") || { echo "无法获取 helm_version 版本"; exit 1; }
   cni_plugins_version=$(get_dl_version "cni_version") || { echo "无法获取 cni_version 版本"; exit 1; }
   runc_version=$(get_dl_version "runc_version") || { echo "无法获取 runc_version 版本"; exit 1; }
   etcd_version=$(get_dl_version "etcd_version") || { echo "无法获取 etcd_version 版本"; exit 1; }
   containerd_version=$(get_dl_version "containerd_version") || { echo "无法获取 containerd_version 版本"; exit 1; }
+  kube_version=$(get_kube_version)
 
   dl_cfssl $arch_type $cfssl_version
   dl_ingress $arch_type $ingress_version
   dl_csi $arch_type $csi_version
   dl_cilium $arch_type $cilium_version
   dl_tigera_operator $arch_type $tigera_operator_version
-  dl_kube_binaries $arch_type $kube_version
+  dl_kube $arch_type $kube_version
   dl_helm $arch_type $helm_version
   dl_cni_plugins $arch_type $cni_plugins_version
   dl_runc $arch_type $runc_version
