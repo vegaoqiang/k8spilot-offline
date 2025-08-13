@@ -201,7 +201,7 @@ dl_cfssl(){
   done
 }
 
-dl_bineries(){
+dl_components(){
   local arch_type=$1
   if [ ! -f ${VAR_FILE} ]; then
     echo "缺少 ${VAR_FILE} 文件"
@@ -332,17 +332,50 @@ dl_images(){
 }
 
 main(){
-  local arch_type=$1
   if [ -z "${arch_type}" ]; then
-    echo "arch_type 不能为空"
+    echo "arch_type 不能为空, 请使用 -p 选项指定架构类型 (amd64 或 arm64)"
     exit 1
   fi
   if [ "${arch_type}" != "amd64" ] && [ "${arch_type}" != "arm64" ]; then
     echo "arch_type 只能是 amd64 或 arm64"
     exit 1
   fi
-  dl_bineries "${arch_type}"
-  dl_images "${arch_type}"
+  if [ -z "${specify_download}" ]; then
+    dl_components "${arch_type}"
+    dl_images "${arch_type}"
+  elif [ "${specify_download}" == "kube" ]; then
+    dl_kube "${arch_type}" "$(get_kube_version)"
+  elif [ "${specify_download}" == "image" ]; then
+    dl_images "${arch_type}"
+  elif [ "${specify_download}" == "components" ]; then
+    dl_components "${arch_type}"
+  else
+    echo "未知的下载选项: ${specify_download}, 可选值为 kube, image, components 或不指定"
+    exit 1
+  fi
+  echo "所有资源下载完成"
 }
 
-main $1
+
+# -p: platform, amd64 or arm64
+# -s: specify download file, kube, image or comonents, if not set, download all
+# -k: kube_version, specify the Kubernetes version to download, v1.33.3 by default
+# Usage: ./resource_downloader.sh -p amd64 -s kube -k v1.33.3
+while getopts ":p:s:k" opt; do
+  case $opt in
+    p)
+      arch_type=$OPTARG
+      ;;
+    s)
+      specify_download=$OPTARG
+      ;;
+    k)
+      KUBE_VERSION=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done 
+
