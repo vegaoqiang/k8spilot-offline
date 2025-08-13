@@ -22,5 +22,5 @@ jobs:
         file: ./Dockerfile
         context: .
         platforms: linux/amd64,linux/arm64
-        tags: quay.io/k8spilot/k8spilot:${{ github.ref_name }}
+        tags: quay.io/k8spilot/k8spilot-offline:${{ github.ref_name }}
         push: true
