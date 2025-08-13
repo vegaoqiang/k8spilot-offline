@@ -217,15 +217,12 @@ dl_components(){
   runc_version=$(get_dl_version "runc_version") || { echo "无法获取 runc_version 版本"; exit 1; }
   etcd_version=$(get_dl_version "etcd_version") || { echo "无法获取 etcd_version 版本"; exit 1; }
   containerd_version=$(get_dl_version "containerd_version") || { echo "无法获取 containerd_version 版本"; exit 1; }
-  # 在终端中使用KUBE_VERSION=v1.33.3设置kubernetes版本环境变量
-  kube_version=$(get_kube_version)
-
+  
   dl_cfssl $arch_type $cfssl_version
   dl_ingress $arch_type $ingress_version
   dl_csi $arch_type $csi_version
   dl_cilium $arch_type $cilium_version
   dl_tigera_operator $arch_type $tigera_operator_version
-  dl_kube $arch_type $kube_version
   dl_helm $arch_type $helm_version
   dl_cni_plugins $arch_type $cni_plugins_version
   dl_runc $arch_type $runc_version
@@ -343,6 +340,7 @@ main(){
   if [ -z "${specify_download}" ]; then
     dl_components "${arch_type}"
     dl_images "${arch_type}"
+    dl_kube "${arch_type}" "$(get_kube_version)"
   elif [ "${specify_download}" == "kube" ]; then
     dl_kube "${arch_type}" "$(get_kube_version)"
   elif [ "${specify_download}" == "image" ]; then
