@@ -3,7 +3,7 @@
 
 ## 功能概述
 + 离线安装Kubernetes集群和网络等插件，不需要互联网在线下载集群组件和镜像
-+ Kubernetes安装版本可选择，可选的版本列表参见: [版本列表](https://dl.k8spilot.icu/kubernetes/kube-versions)
++ Kubernetes安装版本可选择，只需提供对应版本Kubernetes二进制文件
 + Kubernetes所有组件裸运行在系统中，而不是容器化部署，更稳定和易维护
 + 一键化横向扩容Kubernetes集群节点（开发中）
 + 无docker，采用更现代的containerd作为容器运行时
@@ -20,9 +20,9 @@
 
 :bulb: **主控端**  
 
-主控端是运行k8spilot的机器，可以是你的笔记本电脑，可以是一台独立服务器，也可以是被控端机器中的任意一台。主控端需要满足以下要求  
+主控端是运行`k8spilot-offline`的机器，可以是你的笔记本电脑，可以是一台独立服务器，也可以是被控端机器中的任意一台。主控端需要满足以下要求  
 
-+ 主控端要求能连接互联网，能使用root通过ssh登录所有被控端(如果主控端不能连接互联网，请参见离线方案: k8spilot-offline)
++ 主控端能使用root通过ssh登录所有被控端
 + 主控端必须是Linux/MacOS，不支持Windows（Windows使用docker或者wsl方案替代）
 + 主控端必须安装了Python 3.10及以上版本，否则，需要升级Python版本，参见：[Python安装方法](docs/getting_started/install-python.md)    
 
@@ -33,18 +33,18 @@
 + 被控端只能是Linux，且内核版本>=5.4,受支持的Linux发现版本见：[支持的Linux发行版本](#支持的Linux发行版本)
 + 被控端至少要3台虚拟机或服务器，其中一台作为控制平面（master），也可同时作为调度节点（node）
 + 所有被控端CPU架构（x86_64/aarch64）必须一致；为了避免异常问题，建议操作系统以及系统版本也保持一致
-+ 被控端要求能连接互联网，并且所有被控端之间网络互通(如果被控端不能连接互联网，请参见离线方案: k8spilot-offline)
++ 所有被控端之间私网互通
 + 所有被控端Python版本必须>=3.8
 
 > **Tips**: 请根据你的服务要求，合理的选择被控端服务器/虚拟机的硬件配置，避免过小配置影响容器在节点上的正常运行
 
 ## 快速开始
 
-如果主控端安装有Docker服务，推荐使用k8spilot的Docker镜像，可避免主控端复杂的环境和依赖问题。
+如果主控端安装有Docker服务，推荐使用`k8spilot-offline`的Docker镜像，可避免主控端复杂的环境和依赖问题。
 
 [Docker方式使用k8spilot](docs/getting_started/getting-started.md#docker方式使用k8spilot)
 
-没有Docker也不必担心，只需简单几步就能安装k8spilot，见
+没有Docker也不必担心，只需简单几步就能安装`k8spilot-offline`，见
 
 [Getting started](docs/getting_started/getting-started.md)
 
