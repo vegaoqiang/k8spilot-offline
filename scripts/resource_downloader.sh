@@ -45,7 +45,7 @@ lookup_sha256_online(){
   if [ "$?" -ne 0 ] || [ -z "${sha256sum}" ]; then
     return 1
   fi
-  printf "${sha256sum}"
+  printf -- "%s" "${sha256sum}"
 }
 
 dl_and_validation(){
