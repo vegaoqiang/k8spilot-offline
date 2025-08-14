@@ -148,7 +148,7 @@ dl_kube(){
   for file in "${componemens[@]}"; do
     local file_name="${file}"
     local file_url="https://dl.k8s.io/${version}/bin/linux/${arch_type}/${file_name}"
-    local sha256sum_url="https://dl.k8s.io/${version}/bin/linux/amd64/${file_name}.sha256"
+    local sha256sum_url="https://dl.k8s.io/${version}/bin/linux/${arch_type}/${file_name}.sha256"
     dl_and_validation "${file_url}" "${sha256sum_url}" "${file_name}"
   done
 }
