@@ -377,3 +377,4 @@ while getopts ":p:s:k" opt; do
   esac
 done 
 
+main
