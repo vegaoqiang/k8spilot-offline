@@ -10,7 +10,7 @@ fi
 VAR_FILE="$(dirname ${BASH_SOURCE[0]})/../inventories/${ENV}/group_vars/${VAR}"
 RESOURCE_DIR="$(dirname ${BASH_SOURCE[0]})/../artifacts"
 
-if [ ! -d "${RESOURCE_DIR}" ]; then
+if [ ! -d "${RESOURCE_DIR}" ] || [ ! -d "${RESOURCE_DIR}/images" ]; then
   mkdir -p ${RESOURCE_DIR}/images
 fi
 
@@ -359,7 +359,7 @@ main(){
 # -s: specify download file, kube, image or comonent, if not set, download all
 # -k: kube_version, specify the Kubernetes version to download, v1.33.3 by default
 # Usage: ./resource_downloader.sh -p amd64 -s kube -k v1.33.3
-while getopts ":p:s:k" opt; do
+while getopts ":p:s:k:" opt; do
   case $opt in
     p)
       arch_type=$OPTARG
