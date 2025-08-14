@@ -46,11 +46,13 @@ cilium_cli_version: v0.18.4
 calico_version: v3.30.2
 
 # containerd版本
-containerd_version: "{{ '1.7.28' if ansible_distribution == 'Alibaba' else '2.1.3' }}"
+containerd_version: 1.7.28
 # containerd根目录
 containerd_root: /var/lib/containerd
 # cni版本: https://github.com/containernetworking/plugins
 cni_version: v1.7.1
+
+runc_version: v1.3.0
 
 # 根证书证书名称，根证书用于签发集群证书
 root_cert: ca.pem
@@ -80,6 +82,8 @@ nfs_server_host: control
 enable_ingress: true
 # 选择ingress类型，默认使用ingress-nginx, 可选cilium, 当设置为cilium时，cni_povider必须同时为cilium，否则k8spilot不会安装ingress
 ingress_controller: cilium
+# ingress-nginx版本,仅当ingress_controller设置为ingress-nginx时有效
+ingress_nginx_version: v1.13.0
 # ingress入口，将在所有节点上通过nodeport暴露ingress入口
 ingress_nodeport_http: 30080
 ingress_nodeport_https: 30443
