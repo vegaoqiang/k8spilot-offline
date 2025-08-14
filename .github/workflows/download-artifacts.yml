@@ -19,14 +19,18 @@ jobs:
       - name: Download Artifacts
         run: |
           for arch in amd64 arm64; do
+            echo "Download ${arch} component"
             bash scripts/resource_downloader.sh -p "${arch}" -s component
+            echo "Download ${arch} image"
             bash scripts/resource_downloader.sh -p "${arch}" -s image
             kube_versions=($(cat kube-versions|xargs))
             for kube_version in ${kube_versions[@]}; do
               KUBE_VERSION="${kube_version}"
-              bash scripts/resource_downloader.sh -p "${arch}" -k "${KUBE_VERSION}" -s kube
-              echo "Compress Artifacts"
+              echo "Download ${arch} kube"
+              bash scripts/resource_downloader.sh -p "${arch}" -s kube -k "${KUBE_VERSION}"
+              echo "Compress ${arch} Artifacts"
               tar -czvf /tmp/k8spilot-offline-artifacts_${kube_version}_${arch}.tar.gz artifacts
+              echo "Delete ${arch} kube artifacts"
               find artifacts -name "kube*" -maxdepth 1 ! -name "kube-version"|xargs rm -f
             done
           done
