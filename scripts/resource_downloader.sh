@@ -351,7 +351,7 @@ main(){
     echo "未知的下载选项: ${specify_download}, 可选值为 kube, image, component 或不指定"
     exit 1
   fi
-  echo "所有资源下载完成"
+  echo "${specify_download}资源下载完成"
 }
 
 

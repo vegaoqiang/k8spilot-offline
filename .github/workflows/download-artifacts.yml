@@ -21,7 +21,7 @@ jobs:
           for arch in amd64 arm64; do
             bash scripts/resource_downloader.sh -p "${arch}" -s component
             bash scripts/resource_downloader.sh -p "${arch}" -s image
-            kube_versions=$(cat kube-versions|xargs)
+            kube_versions=($(cat kube-versions|xargs))
             for kube_version in $kube_versions; do
               KUBE_VERSION="${kube_version}"
               bash scripts/resource_downloader.sh -p "${arch}" -k "${KUBE_VERSION}" -s kube
